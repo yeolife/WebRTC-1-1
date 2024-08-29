@@ -35,12 +35,14 @@ class WaitFragment : Fragment() {
     }
 
     private fun changeFragment(user: User) {
-        val fragment = LiveFragment.newInstance(user)
+        if (childFragmentManager.findFragmentById(R.id.fl) == null) {
+            val fragment = LiveFragment.newInstance(user)
 
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fl, fragment)
-            .addToBackStack(null)
-            .commit()
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fl, fragment)
+                .addToBackStack(null)
+                .commit()
+        }
     }
 
     override fun onDestroyView() {
