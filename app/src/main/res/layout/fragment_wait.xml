@@ -6,6 +6,17 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".WaitFragment">
 
+    <EditText
+        android:id="@+id/et_number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_offer"
+        android:layout_margin="36dp"
+        android:hint="방 번호를 입력하세요."
+        android:inputType="number"/>
+
     <Button
         android:id="@+id/btn_offer"
         android:layout_width="wrap_content"

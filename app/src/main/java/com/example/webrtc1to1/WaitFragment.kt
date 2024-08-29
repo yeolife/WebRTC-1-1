@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import com.example.webrtc1to1.databinding.FragmentWaitBinding
 import java.io.Serializable
 
-data class User(val liveId: Int, val isTeacher: Boolean): Serializable
+data class User(var liveId: Int, var isTeacher: Boolean): Serializable
 
 class WaitFragment : Fragment() {
     private var _binding: FragmentWaitBinding? = null
@@ -26,11 +26,15 @@ class WaitFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnOffer.setOnClickListener {
-            changeFragment(User(0, true))
+            val liveId: Int = binding.etNumber.text.toString().toInt()
+
+            changeFragment(User(liveId, true))
         }
 
         binding.btnAnswer.setOnClickListener {
-            changeFragment(User(0, false))
+            val liveId: Int = binding.etNumber.text.toString().toInt()
+
+            changeFragment(User(liveId, false))
         }
     }
 
