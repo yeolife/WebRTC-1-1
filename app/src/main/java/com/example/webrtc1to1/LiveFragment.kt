@@ -42,7 +42,7 @@ import org.webrtc.RendererCommon
 import org.webrtc.VideoTrack
 
 class LiveFragment : Fragment() {
-    private var user: User = User(0, false)
+    private lateinit var user: User
 
     private var _binding: FragmentLiveBinding? = null
     private val binding get() = _binding!!
@@ -55,9 +55,6 @@ class LiveFragment : Fragment() {
     private var prevState: WebRTCSessionState = WebRTCSessionState.Offline
     private var isMirrorMode = true
 
-    // 기능
-    private lateinit var sessionManager: WebRtcSessionManager
-
     // 화면
     private lateinit var localRenderer: VideoTextureViewRenderer
     private lateinit var remoteRenderer: VideoTextureViewRenderer
@@ -65,16 +62,15 @@ class LiveFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        sessionManager = WebRtcSessionManagerImpl(
-            requireContext(),
-            SignalingClient(),
-            StreamPeerConnectionFactory(requireContext())
-        )
         
         arguments?.let {
-            user = it.getSerializable(ARG_PARAM) as User
-            sessionManager.signalingClient.updateInfo(user.liveId, if(user.isTeacher) 1 else 0)
+            user = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                it.getSerializable(ARG_PARAM, User::class.java) ?: User(0, false)
+            } else {
+                @Suppress("DEPRECATION")
+                it.getSerializable(ARG_PARAM) as? User ?: User(0, false)
+            }
+            viewModel.sessionManager.signalingClient.updateInfo(user.liveId, if(user.isTeacher) 1 else 0)
         }
     }
 
@@ -107,7 +103,7 @@ class LiveFragment : Fragment() {
     }
 
     private fun isPermission() {
-        sessionManager.onLocalScreen()
+        viewModel.sessionManager.onLocalScreen()
     }
 
     private fun initPermission() {
@@ -138,11 +134,11 @@ class LiveFragment : Fragment() {
             }
 
             ibtnCamSwitch.setOnClickListener {
-                if (sessionManager.signalingClient.sessionStateFlow.value == WebRTCSessionState.Active) {
+                if (viewModel.sessionManager.signalingClient.sessionStateFlow.value == WebRTCSessionState.Active) {
                     isMirrorMode = !isMirrorMode
                     localVideoCallScreen.setMirror(isMirrorMode)
 
-                    sessionManager.flipCamera()
+                    viewModel.sessionManager.flipCamera()
                 }
             }
 
@@ -211,7 +207,7 @@ class LiveFragment : Fragment() {
     private fun observeSessionState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sessionManager.signalingClient.sessionStateFlow.collect { state ->
+                viewModel.sessionManager.signalingClient.sessionStateFlow.collect { state ->
                     handleSessionState(state)
                 }
             }
@@ -227,7 +223,7 @@ class LiveFragment : Fragment() {
         when (state) {
             WebRTCSessionState.Offline -> {
                 if (prevState != WebRTCSessionState.Offline) {
-                    runCatching  { sessionManager.disconnect() }
+                    runCatching  { viewModel.sessionManager.disconnect() }
                 }
             }
 
@@ -238,12 +234,12 @@ class LiveFragment : Fragment() {
 
             WebRTCSessionState.Ready -> {
                 if (user.isTeacher)
-                    sessionManager.onSessionReady()
+                    viewModel.sessionManager.onSessionReady()
             }
 
             WebRTCSessionState.Creating -> {
                 if (!user.isTeacher)
-                    sessionManager.onSessionReady()
+                    viewModel.sessionManager.onSessionReady()
             }
 
             WebRTCSessionState.Active -> { setBackLocalScreenSize() }
@@ -335,8 +331,8 @@ class LiveFragment : Fragment() {
 
     private fun handleMicrophoneState(isEnabled: Boolean) {
         runCatching {
-            if (sessionManager.signalingClient.sessionStateFlow.value == WebRTCSessionState.Active)
-                sessionManager.enableMicrophone(isEnabled)
+            if (viewModel.sessionManager.signalingClient.sessionStateFlow.value == WebRTCSessionState.Active)
+                viewModel.sessionManager.enableMicrophone(isEnabled)
         }.onSuccess {
             binding.ibtnMic.setImageResource(if (isEnabled) R.drawable.baseline_mic_24 else R.drawable.baseline_mic_off_24)
         }
@@ -344,8 +340,8 @@ class LiveFragment : Fragment() {
 
     private fun handleCameraState(isEnabled: Boolean) {
         runCatching {
-            if (sessionManager.signalingClient.sessionStateFlow.value == WebRTCSessionState.Active)
-                sessionManager.enableCamera(isEnabled)
+            if (viewModel.sessionManager.signalingClient.sessionStateFlow.value == WebRTCSessionState.Active)
+                viewModel.sessionManager.enableCamera(isEnabled)
         }.onSuccess {
             binding.ibtnVideo.setImageResource(if (isEnabled) R.drawable.baseline_videocam_24 else R.drawable.baseline_videocam_off_24)
         }
@@ -355,14 +351,14 @@ class LiveFragment : Fragment() {
         localRenderer = binding.localVideoCallScreen
         remoteRenderer = binding.remoteVideoCallScreen
 
-        localRenderer.init(sessionManager.peerConnectionFactory.eglBaseContext,
+        localRenderer.init(viewModel.sessionManager.peerConnectionFactory.eglBaseContext,
             object : RendererCommon.RendererEvents {
                 override fun onFirstFrameRendered() = Unit
 
                 override fun onFrameResolutionChanged(width: Int, height: Int, rotation: Int) = Unit
             })
 
-        remoteRenderer.init(sessionManager.peerConnectionFactory.eglBaseContext,
+        remoteRenderer.init(viewModel.sessionManager.peerConnectionFactory.eglBaseContext,
             object : RendererCommon.RendererEvents {
                 override fun onFirstFrameRendered() = Unit
 
@@ -371,8 +367,8 @@ class LiveFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                collectVideoTrack(sessionManager.localVideoTrackFlow, localRenderer)
-                collectVideoTrack(sessionManager.remoteVideoTrackFlow, remoteRenderer)
+                collectVideoTrack(viewModel.sessionManager.localVideoTrackFlow, localRenderer)
+                collectVideoTrack(viewModel.sessionManager.remoteVideoTrackFlow, remoteRenderer)
             }
         }
     }
@@ -448,7 +444,7 @@ class LiveFragment : Fragment() {
 
     private fun popBack() {
         runCatching {
-            sessionManager.disconnect()
+            viewModel.sessionManager.disconnect()
         }.onSuccess {
             setSpeakerphoneOn(false)
 

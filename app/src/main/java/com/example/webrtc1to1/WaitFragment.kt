@@ -26,11 +26,15 @@ class WaitFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnOffer.setOnClickListener {
-            changeFragment(User(0, true))
+            val user = User(binding.etRoomNum.toString().toInt(), true)
+
+            changeFragment(user)
         }
 
         binding.btnAnswer.setOnClickListener {
-            changeFragment(User(0, false))
+            val user = User(binding.etRoomNum.toString().toInt(), false)
+
+            changeFragment(user)
         }
     }
 

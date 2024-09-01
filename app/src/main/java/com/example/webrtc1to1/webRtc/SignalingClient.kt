@@ -23,26 +23,13 @@ class SignalingClient {
     private val client = OkHttpClient()
 
     private var liveId: Int = -1
-        set(value) {
-            if (value != -1) {
-                field = value
-
-                checkAndConnect()
-            }
-        }
-
     private var isMyClass: Int = -1
-        set(value) {
-            if (value != -1) {
-                field = value
-
-                checkAndConnect()
-            }
-        }
 
     fun updateInfo(id: Int, state: Int) {
         liveId = id
         isMyClass = state
+
+        checkAndConnect()
     }
 
     private fun checkAndConnect() {
